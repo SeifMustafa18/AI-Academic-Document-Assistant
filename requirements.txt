@@ -1,0 +1,22 @@
+# Core
+streamlit
+python-dotenv
+
+# LangChain ecosystem
+langchain
+langchain-core
+langchain-community
+langchain-classic
+langchain-text-splitters
+langchain-huggingface
+langchain-ollama
+# LLM & Embeddings
+transformers
+sentence-transformers
+torch
+
+# Vector store
+faiss-cpu
+
+# PDF processing
+pypdf

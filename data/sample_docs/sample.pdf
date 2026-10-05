@@ -1,0 +1,88 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 9 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 995 >>
+stream
+BT
+/F1 11 Tf
+50 740 Td
+(Academic Document Assistant - Research Notes) Tj
+0 -16 Td (Page 1: Introduction to Artificial Intelligence) Tj
+0 -16 Td () Tj
+0 -16 Td (Artificial Intelligence \(AI\) is a multidisciplinary field of computer science focused on creating systems capable of performing tasks that typically require human intelligence. These tasks include visual perception, speech recognition, decision-making, and translation between languages. In academic environments, students and researchers must routinely process vast quantities of textual information, ranging from textbooks to research papers and lecture slides.) Tj
+0 -16 Td () Tj
+0 -16 Td (Modern advancements in Natural Language Processing \(NLP\) and Large Language Models \(LLMs\) have transformed how scholars interact with academic literature. Rather than manually scanning hundreds of pages, automated systems can extract key concepts, identify connections across topics, and answer contextual queries with precision.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 9 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 1153 >>
+stream
+BT
+/F1 11 Tf
+50 740 Td
+(Academic Document Assistant - Research Notes) Tj
+0 -16 Td (Page 2: Machine Learning Paradigms & Deep Learning) Tj
+0 -16 Td () Tj
+0 -16 Td (Machine learning algorithms build mathematical models based on sample training data to make predictions or decisions without being explicitly programmed for each specific scenario. The primary learning paradigms include:) Tj
+0 -16 Td () Tj
+0 -16 Td (1. Supervised Learning: Learning a function that maps an input to an output based on example input-output pairs. Common algorithms include linear regression, support vector machines, and deep neural networks.) Tj
+0 -16 Td (2. Unsupervised Learning: Discovering hidden patterns or data groupings without labeled responses. Common methods include k-means clustering and principal component analysis.) Tj
+0 -16 Td (3. Reinforcement Learning: Training agents to take actions in an environment to maximize cumulative reward through trial and error.) Tj
+0 -16 Td () Tj
+0 -16 Td (Deep Learning architectures, particularly multi-layer neural networks and transformers, serve as the foundational backbone for modern document analysis systems.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 9 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 1129 >>
+stream
+BT
+/F1 11 Tf
+50 740 Td
+(Academic Document Assistant - Research Notes) Tj
+0 -16 Td (Page 3: Retrieval-Augmented Generation \(RAG\) Architecture) Tj
+0 -16 Td () Tj
+0 -16 Td (Retrieval-Augmented Generation \(RAG\) addresses key limitations of static large language models, including hallucinations and outdated factual knowledge. RAG combines external knowledge retrieval with neural text generation.) Tj
+0 -16 Td () Tj
+0 -16 Td (The standard RAG pipeline operates as follows:) Tj
+0 -16 Td (First, source documents are ingested and split into manageable text chunks. Next, an embedding model transforms each chunk into a dense vector representation reflecting its semantic meaning. These vectors are indexed within a high-performance vector database such as FAISS.) Tj
+0 -16 Td () Tj
+0 -16 Td (When a student poses a query, the query is embedded into the same vector space, and similarity search identifies the top matching chunks. Finally, the retrieved chunks along with the query are formatted into a prompt and submitted to the language model, which generates a factually grounded answer with verifiable source citations.) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000253 00000 n 
+0000001299 00000 n 
+0000001425 00000 n 
+0000002630 00000 n 
+0000002756 00000 n 
+0000003937 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+4007
+%%EOF
