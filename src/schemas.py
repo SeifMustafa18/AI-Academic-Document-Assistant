@@ -10,7 +10,7 @@ Phase 7: Structured Output
 
 import json
 import re
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -32,6 +32,42 @@ class DocumentComparisonSchema(BaseModel):
     similarities: List[str] = Field(description="Key similarities between the two documents")
     differences: List[str] = Field(description="Key differences between the two documents")
     key_observations: List[str] = Field(description="Important observations or relationships supported by both documents")
+
+
+class QuizQuestion(BaseModel):
+    """Schema for a single multiple-choice quiz question."""
+    question: str = Field(description="The multiple choice question")
+    options: List[str] = Field(description="List of possible answer options")
+    correct_answer: str = Field(description="The exact text of the correct option")
+    explanation: str = Field(description="Explanation of why the answer is correct")
+    source_page: Optional[str] = Field(default=None, description="Source page number or label if traceable")
+
+
+class QuizSchema(BaseModel):
+    """Schema for a complete generated quiz."""
+    questions: List[QuizQuestion] = Field(description="List of multiple-choice questions")
+
+
+class Flashcard(BaseModel):
+    """Schema for a single academic flashcard."""
+    front: str = Field(description="The question, concept, or term on the front of the card")
+    back: str = Field(description="The answer or definition on the back of the card")
+    source_page: Optional[str] = Field(default=None, description="Source page number or label if traceable")
+
+
+class FlashcardListSchema(BaseModel):
+    """Schema for a collection of generated flashcards."""
+    flashcards: List[Flashcard] = Field(description="List of flashcards")
+
+
+class StudyGuideSchema(BaseModel):
+    """Schema for a comprehensive academic study guide."""
+    main_topic: str = Field(description="The central topic of the document")
+    key_concepts: List[str] = Field(description="List of core concepts with optional page references")
+    important_definitions: List[str] = Field(description="Key definitions found in the text with optional page references")
+    key_relationships: List[str] = Field(description="Important relationships or connections between concepts")
+    important_points: List[str] = Field(description="Crucial takeaways or findings")
+    suggested_review_topics: List[str] = Field(description="Topics the student should review further")
 
 
 # --- JSON Extraction and Pydantic Parsing ---

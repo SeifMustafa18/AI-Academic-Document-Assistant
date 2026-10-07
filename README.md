@@ -11,8 +11,12 @@ The platform implements the following core features:
 - **PDF Question Answering using RAG**: Upload an academic PDF, index it into FAISS, and ask natural language questions. The AI answers strictly using the document's context.
 - **Document Summarization**: Generate cohesive, structured summaries of uploaded documents using a map-reduce chunking approach.
 - **Two-Document Comparison**: Compare two documents side by side to extract main topics, key concepts, similarities, differences, and key observations.
-- **Pydantic Structured Output**: All generated summaries and comparisons are strictly validated and formatted into predictable JSON structures.
-- **Source/Page References**: Every Q&A answer is backed by verifiable citations, pointing to the exact page and source file.
+- **Quiz Generator**: Create rigorous multiple-choice quizzes (varying difficulties) grounded entirely in the document context.
+- **Academic Flashcards**: Generate study flashcards targeting key definitions and concepts.
+- **Comprehensive Study Guide**: Synthesize a structured study guide with main topics, relationships, and suggested review areas.
+- **Source Explorer**: View the exact document chunks and raw text retrieved from FAISS to understand the RAG context pipeline.
+- **Pydantic Structured Output**: All generated summaries, comparisons, quizzes, flashcards, and study guides are strictly validated and formatted into predictable JSON structures.
+- **Source/Page References**: Every feature is backed by verifiable citations, pointing to the exact page and source file.
 - **Streamlit UI**: A clean, interactive, tab-based web interface.
 
 ## 4. System Workflow / Architecture

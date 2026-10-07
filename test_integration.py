@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 from src.document_processor import load_pdf, chunk_documents, create_vector_store, similarity_search
 from src.rag_pipeline import (
     get_llm, answer_question, summarize_document, compare_documents,
-    summarize_document_structured, compare_documents_structured
+    generate_quiz, generate_flashcards, generate_study_guide
 )
-from src.schemas import DocumentSummarySchema, DocumentComparisonSchema, parse_llm_json_to_model
+from src.schemas import DocumentSummarySchema, DocumentComparisonSchema, QuizSchema, FlashcardListSchema, StudyGuideSchema, parse_llm_json_to_model
 
 # Load env variables for testing
 load_dotenv()
@@ -29,7 +29,7 @@ class TestPhase9Integration(unittest.TestCase):
         self.assertGreater(len(self.docs1), 0)
         self.assertGreater(len(self.docs2), 0)
         self.assertGreater(len(self.chunks1), 0)
-        
+
         # Verify metadata
         first_chunk = self.chunks1[0]
         self.assertIn("source", first_chunk.metadata)
@@ -51,6 +51,11 @@ class TestPhase9Integration(unittest.TestCase):
         self.assertIn("answer", res_valid)
         self.assertIn("sources", res_valid)
         self.assertGreater(len(res_valid["sources"]), 0)
+
+        # Source Explorer validation: verify metadata exists on chunks
+        first_source = res_valid["sources"][0]
+        self.assertIn("source", first_source)
+        self.assertIn("preview", first_source)
 
         # 2. Unanswered question
         res_invalid = answer_question(self.vector_store1, "What is the recipe for chocolate cake?")
@@ -86,6 +91,52 @@ class TestPhase9Integration(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_llm_json_to_model(malformed_json, DocumentSummarySchema)
 
+        # Quiz Schema Valid
+        quiz_json = '{"questions": [{"question": "Q1", "options": ["A", "B", "C", "D"], "correct_answer": "A", "explanation": "Expl", "source_page": "1"}]}'
+        quiz_model = parse_llm_json_to_model(quiz_json, QuizSchema)
+        self.assertEqual(len(quiz_model.questions), 1)
+
+    def test_g_quiz_generation(self):
+        # We test with a small number to save token/compute time
+        res = generate_quiz(self.pdf1, num_questions=2, difficulty="Easy")
+        self.assertIn("questions", res)
+        self.assertGreaterEqual(len(res["questions"]), 1)
+
+        first_q = res["questions"][0]
+        self.assertIn("question", first_q)
+        self.assertEqual(len(first_q["options"]), 4)
+        self.assertIn("correct_answer", first_q)
+        self.assertIn("explanation", first_q)
+
+
+    def test_h_flashcard_generation(self):
+        # Flashcard Schema Valid
+        fc_json = '{"flashcards": [{"front": "Front text", "back": "Back text", "source_page": "1"}]}'
+        fc_model = parse_llm_json_to_model(fc_json, FlashcardListSchema)
+        self.assertEqual(len(fc_model.flashcards), 1)
+        self.assertEqual(fc_model.flashcards[0].front, "Front text")
+
+        # Flashcard Generation
+        res = generate_flashcards(self.pdf1, num_flashcards=2)
+        self.assertIn("flashcards", res)
+        self.assertGreaterEqual(len(res["flashcards"]), 1)
+
+        first_fc = res["flashcards"][0]
+        self.assertIn("front", first_fc)
+        self.assertIn("back", first_fc)
+
+    def test_i_study_guide_generation(self):
+        # Study Guide Schema Valid
+        sg_json = '{"main_topic": "Topic", "key_concepts": ["A"], "important_definitions": ["B"], "key_relationships": ["C"], "important_points": ["D"], "suggested_review_topics": ["E"]}'
+        sg_model = parse_llm_json_to_model(sg_json, StudyGuideSchema)
+        self.assertEqual(sg_model.main_topic, "Topic")
+
+        # Study Guide Generation
+        res = generate_study_guide(self.pdf1)
+        self.assertIn("main_topic", res)
+        self.assertIn("key_concepts", res)
+        self.assertIn("important_definitions", res)
+        self.assertGreater(len(res["key_concepts"]), 0)
 
 
 if __name__ == "__main__":

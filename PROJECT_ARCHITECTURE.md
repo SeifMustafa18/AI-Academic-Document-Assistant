@@ -6,7 +6,7 @@ The AI Academic Document Assistant follows a modular, single-responsibility arch
 ## 2. Components
 - **app.py**: The Streamlit frontend. It manages tab navigation, session state (temporary files and analysis results), and UI interactions. It contains no direct business logic.
 - **src/document_processor.py**: Handles PDF ingestion, text extraction, chunking, embeddings generation, and FAISS vector store operations.
-- **src/rag_pipeline.py**: The core orchestration layer. It bridges document retrieval with LLM inference, exposing high-level functions for Q&A, Summarization, and Comparison.
+- **src/rag_pipeline.py**: The core orchestration layer. It bridges document retrieval with LLM inference, exposing high-level functions for Q&A, Summarization, Comparison, and Academic Tools (Quiz, Flashcards, Study Guide).
 - **src/chains.py**: Houses all LangChain PromptTemplates and LCEL (LangChain Expression Language) runnable sequences.
 - **src/schemas.py**: Defines Pydantic models for structured outputs and implements the JSON extraction/parsing logic.
 - **src/utils.py**: Helper functions for managing temporary files, extracting regex blocks, and loading environment variables.
@@ -55,8 +55,15 @@ Document A → Summary A ┐
                        ├→ LCEL Comparison Chain → Final Comparison
 Document B → Summary B ┘
 ```
+```
 
-## 6. Pydantic Validation & Structured Outputs
+## 6. Academic Tools Architecture (Quiz, Flashcards, Study Guide)
+To prevent context overflow and minimize LLM token usage, the academic tools utilize selective chunk sampling or contextual aggregation:
+- **Quiz & Flashcards**: The system randomly samples individual document chunks, invoking Map generation over them until the exact requested count (e.g., 5 questions) is reached. This fully preserves specific source page metadata.
+- **Study Guide**: The system aggregates chunks (up to a safe token limit), annotating them with page numbers, and passes them to a single comprehensive chain.
+- **Source Explorer**: This UI-only feature visualizes the exact FAISS chunks retrieved during Q&A for absolute transparency.
+
+## 7. Pydantic Validation & Structured Outputs
 To ensure reliable UI rendering, the system enforces structured outputs. Because the current LLM provider does not natively support `llm.with_structured_output()`, the project implements a robust post-processing pipeline:
 
 ```text

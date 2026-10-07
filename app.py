@@ -74,7 +74,9 @@ st.markdown("Analyze academic PDF documents using RAG, summarization, and docume
 
 
 # --- Feature Tabs ---
-tab_qa, tab_summary, tab_compare = st.tabs(["Q&A", "Summary", "Compare Documents"])
+tab_qa, tab_summary, tab_compare, tab_quiz, tab_flashcards, tab_study, tab_sources = st.tabs([
+    "Q&A", "Summary", "Compare Documents", "Quiz", "Flashcards", "Study Guide", "Source Explorer"
+])
 
 
 # ==================================================
@@ -335,3 +337,214 @@ with tab_compare:
             raw_comp = res["data"]
             st.markdown("### Comparison Result")
             st.write(raw_comp.get("comparison", ""))
+
+
+# ==================================================
+# 4. QUIZ TAB
+# ==================================================
+with tab_quiz:
+    st.subheader("Quiz Generator")
+    st.markdown("Generate a multiple-choice quiz grounded in the document.")
+
+    quiz_file = st.file_uploader(
+        "Upload PDF Document for Quiz",
+        type=["pdf"],
+        help="Upload a single academic PDF file.",
+        key="quiz_file_uploader",
+    )
+
+    if quiz_file:
+        quiz_temp_path = st.session_state.get("quiz_temp_path")
+        if not quiz_temp_path or st.session_state.get("quiz_file_id") != f"{quiz_file.name}_{quiz_file.size}":
+            if quiz_temp_path:
+                cleanup_temp_file(quiz_temp_path)
+                _registered_temp_files.discard(quiz_temp_path)
+
+            new_path = save_uploaded_file_to_temp(quiz_file)
+            _registered_temp_files.add(new_path)
+            st.session_state["quiz_temp_path"] = new_path
+            st.session_state["quiz_file_id"] = f"{quiz_file.name}_{quiz_file.size}"
+            st.session_state["quiz_result"] = None
+
+        col1, col2 = st.columns(2)
+        with col1:
+            num_questions = st.number_input("Number of questions", min_value=1, max_value=20, value=5, key="quiz_num_qs")
+        with col2:
+            difficulty = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"], index=1, key="quiz_diff")
+
+        if st.button("Generate Quiz", type="primary"):
+            with st.spinner("Generating quiz questions..."):
+                try:
+                    from src.rag_pipeline import generate_quiz
+                    st.session_state["quiz_result"] = generate_quiz(
+                        st.session_state["quiz_temp_path"],
+                        num_questions=num_questions,
+                        difficulty=difficulty
+                    )
+                except Exception as e:
+                    st.error(f"Failed to generate quiz: {e}")
+
+        # Display results
+        quiz_result = st.session_state.get("quiz_result")
+        if quiz_result and "questions" in quiz_result:
+            st.success("Quiz generated successfully!")
+            for idx, q in enumerate(quiz_result["questions"], 1):
+                st.markdown(f"**Q{idx}: {q['question']}**")
+                for opt in q['options']:
+                    st.markdown(f"- {opt}")
+
+                with st.expander("Show Answer"):
+                    st.markdown(f"**Correct Answer:** {q['correct_answer']}")
+                    st.markdown(f"**Explanation:** {q['explanation']}")
+                    if q.get('source_page'):
+                        st.caption(f"Source Page: {q['source_page']}")
+                st.divider()
+
+# ==================================================
+# 5. FLASHCARDS TAB
+# ==================================================
+with tab_flashcards:
+    st.subheader("Academic Flashcards")
+    st.markdown("Generate study flashcards from the document.")
+
+    fc_file = st.file_uploader(
+        "Upload PDF Document for Flashcards",
+        type=["pdf"],
+        help="Upload a single academic PDF file.",
+        key="fc_file_uploader",
+    )
+
+    if fc_file:
+        fc_temp_path = st.session_state.get("fc_temp_path")
+        if not fc_temp_path or st.session_state.get("fc_file_id") != f"{fc_file.name}_{fc_file.size}":
+            if fc_temp_path:
+                cleanup_temp_file(fc_temp_path)
+                _registered_temp_files.discard(fc_temp_path)
+
+            new_path = save_uploaded_file_to_temp(fc_file)
+            _registered_temp_files.add(new_path)
+            st.session_state["fc_temp_path"] = new_path
+            st.session_state["fc_file_id"] = f"{fc_file.name}_{fc_file.size}"
+            st.session_state["fc_result"] = None
+
+        num_fc = st.number_input("Number of flashcards", min_value=1, max_value=30, value=10, key="fc_num")
+
+        if st.button("Generate Flashcards", type="primary"):
+            with st.spinner("Generating flashcards..."):
+                try:
+                    from src.rag_pipeline import generate_flashcards
+                    st.session_state["fc_result"] = generate_flashcards(
+                        st.session_state["fc_temp_path"],
+                        num_flashcards=num_fc
+                    )
+                except Exception as e:
+                    st.error(f"Failed to generate flashcards: {e}")
+
+        # Display results
+        fc_result = st.session_state.get("fc_result")
+        if fc_result and "flashcards" in fc_result:
+            st.success("Flashcards generated successfully!")
+
+            # Simple UI for flashcards
+            for idx, fc in enumerate(fc_result["flashcards"], 1):
+                with st.expander(f"Card {idx}: {fc['front']}"):
+                    st.markdown(f"**Answer:** {fc['back']}")
+                    if fc.get('source_page'):
+                        st.caption(f"Source Page: {fc['source_page']}")
+
+# ==================================================
+# 6. STUDY GUIDE TAB
+# ==================================================
+with tab_study:
+    st.subheader("Study Guide")
+    st.markdown("Generate a structured academic study guide from the document.")
+
+    sg_file = st.file_uploader(
+        "Upload PDF Document for Study Guide",
+        type=["pdf"],
+        help="Upload a single academic PDF file.",
+        key="sg_file_uploader",
+    )
+
+    if sg_file:
+        sg_temp_path = st.session_state.get("sg_temp_path")
+        if not sg_temp_path or st.session_state.get("sg_file_id") != f"{sg_file.name}_{sg_file.size}":
+            if sg_temp_path:
+                cleanup_temp_file(sg_temp_path)
+                _registered_temp_files.discard(sg_temp_path)
+
+            new_path = save_uploaded_file_to_temp(sg_file)
+            _registered_temp_files.add(new_path)
+            st.session_state["sg_temp_path"] = new_path
+            st.session_state["sg_file_id"] = f"{sg_file.name}_{sg_file.size}"
+            st.session_state["sg_result"] = None
+
+        if st.button("Generate Study Guide", type="primary"):
+            with st.spinner("Analyzing document and building study guide..."):
+                try:
+                    from src.rag_pipeline import generate_study_guide
+                    st.session_state["sg_result"] = generate_study_guide(
+                        st.session_state["sg_temp_path"]
+                    )
+                except Exception as e:
+                    st.error(f"Failed to generate study guide: {e}")
+
+        # Display results
+        sg = st.session_state.get("sg_result")
+        if sg:
+            st.success("Study Guide generated successfully!")
+
+            st.markdown(f"## {sg.get('main_topic', 'Main Topic')}")
+
+            st.markdown("### Key Concepts")
+            for c in sg.get("key_concepts", []):
+                st.markdown(f"- {c}")
+
+            st.markdown("### Important Definitions")
+            for d in sg.get("important_definitions", []):
+                st.markdown(f"- {d}")
+
+            st.markdown("### Key Relationships")
+            for r in sg.get("key_relationships", []):
+                st.markdown(f"- {r}")
+
+            st.markdown("### Important Points")
+            for p in sg.get("important_points", []):
+                st.markdown(f"- {p}")
+
+            st.markdown("### Suggested Review Topics")
+            for s in sg.get("suggested_review_topics", []):
+                st.markdown(f"- {s}")
+
+
+# ==================================================
+# 7. SOURCE EXPLORER TAB
+# ==================================================
+with tab_sources:
+    st.subheader("Source Explorer")
+    st.markdown("Understand how the AI generates its answers by inspecting the raw context retrieved from the FAISS vector database.")
+
+    last_q = st.session_state.get("qa_last_question")
+    last_sources = st.session_state.get("qa_last_sources")
+    vector_store = st.session_state.get("qa_vector_store")
+
+    if not vector_store:
+        st.info("No document has been indexed in the Q&A tab yet. Upload a document there first.")
+    elif not last_q or not last_sources:
+        st.info("No question has been asked yet. Ask a question in the Q&A tab to see the retrieved context.")
+    else:
+        st.success(f"**Question:** {last_q}")
+        st.markdown(f"**Final Answer:**\n> {st.session_state.get('qa_last_answer', '')}")
+        st.divider()
+        st.markdown("### Retrieved Chunks (Context)")
+        st.markdown("The following chunks were retrieved from FAISS via similarity search and sent to the LLM as context.")
+
+        for idx, doc_dict in enumerate(last_sources, 1):
+            source_file = doc_dict.get("source", "Unknown")
+            page_val = doc_dict.get("page", "Unknown")
+
+            with st.expander(f"Chunk {idx} (Page: {page_val})"):
+                st.caption(f"**Source File:** `{source_file}`")
+                st.caption(f"**Retrieved Order:** #{idx} most similar")
+                st.markdown("**Chunk Preview:**")
+                st.code(doc_dict.get("preview", ""), language="text")

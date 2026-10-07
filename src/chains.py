@@ -25,12 +25,12 @@ Instructions:
 - Keep the answer clear and concise.
 
 Answer:"""
-    
+
     prompt = PromptTemplate(
         input_variables=["context", "question"],
         template=qa_prompt_template
     )
-    
+
     # Using modern LangChain LCEL
     return prompt | llm
 
@@ -192,3 +192,125 @@ JSON:"""
     )
     return prompt | llm
 
+
+def get_chunk_quiz_chain(llm) -> RunnableSequence:
+    """
+    Create an LCEL chain to generate quiz questions from a single document chunk.
+    """
+    quiz_template = """You are an AI Academic Document Assistant. Generate a multiple-choice quiz based ONLY on the provided document chunk.
+
+Document Chunk (Source Page: {source_page}):
+{chunk_text}
+
+Requirements:
+- Generate exactly 2 questions.
+- Difficulty level: {difficulty}.
+- Do not invent facts or use outside knowledge.
+- For each question, provide 4 options, the exact correct answer text, and an explanation.
+- Set the source_page field strictly to "{source_page}".
+- Format the output as a valid JSON object matching the requested schema.
+
+Return a JSON object with exactly this structure:
+{{
+  "questions": [
+    {{
+      "question": "string",
+      "options": ["string", "string", "string", "string"],
+      "correct_answer": "string",
+      "explanation": "string",
+      "source_page": "string"
+    }}
+  ]
+}}
+
+Important:
+- Return ONLY the JSON object, no markdown formatting or extra text outside the JSON.
+- All keys must be exactly as specified.
+
+JSON:"""
+
+    prompt = PromptTemplate(
+        input_variables=["chunk_text", "source_page", "difficulty"],
+        template=quiz_template
+    )
+    return prompt | llm
+
+
+def get_chunk_flashcard_chain(llm) -> RunnableSequence:
+    """
+    Create an LCEL chain to generate flashcards from a single document chunk.
+    """
+    flashcard_template = """You are an AI Academic Document Assistant. Generate academic study flashcards based ONLY on the provided document chunk.
+
+Document Chunk (Source Page: {source_page}):
+{chunk_text}
+
+Requirements:
+- Generate exactly 2 flashcards capturing key terms, concepts, or important facts.
+- Do not invent facts or use outside knowledge.
+- Keep the front concise (e.g., a term or a short question).
+- Keep the back informative but brief.
+- Set the source_page field strictly to "{source_page}".
+- Format the output as a valid JSON object matching the requested schema.
+
+Return a JSON object with exactly this structure:
+{{
+  "flashcards": [
+    {{
+      "front": "string",
+      "back": "string",
+      "source_page": "string"
+    }}
+  ]
+}}
+
+Important:
+- Return ONLY the JSON object, no markdown formatting or extra text outside the JSON.
+- All keys must be exactly as specified.
+
+JSON:"""
+
+    prompt = PromptTemplate(
+        input_variables=["chunk_text", "source_page"],
+        template=flashcard_template
+    )
+    return prompt | llm
+
+
+def get_study_guide_chain(llm) -> RunnableSequence:
+    """
+    Create an LCEL chain to generate a structured study guide from document context.
+    """
+    study_guide_template = """You are an AI Academic Document Assistant. Generate a comprehensive study guide based ONLY on the provided document text.
+
+Document Text:
+{context}
+
+Requirements:
+- Extract the main topic, key concepts, important definitions, key relationships, important points, and suggested review topics.
+- Include page numbers in the text for concepts or definitions (e.g., "Machine Learning (Page 3)").
+- Do not invent facts or use outside knowledge.
+- Format the output as a valid JSON object matching the requested schema.
+
+Return a JSON object with exactly this structure:
+{{
+  "main_topic": "string",
+  "key_concepts": ["string", "string"],
+  "important_definitions": ["string", "string"],
+  "key_relationships": ["string", "string"],
+  "important_points": ["string", "string"],
+  "suggested_review_topics": ["string", "string"]
+}}
+
+Important:
+- Return ONLY the JSON object, no markdown formatting or extra text outside the JSON.
+- All keys must be exactly as specified.
+- Lists must be JSON arrays of strings.
+
+JSON:"""
+
+    prompt = PromptTemplate(
+        input_variables=["context"],
+        template=study_guide_template
+    )
+    return prompt | llm

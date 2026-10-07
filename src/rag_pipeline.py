@@ -13,11 +13,17 @@ from src.chains import (
     get_compare_chain,
     get_structured_summary_chain,
     get_structured_comparison_chain,
+    get_chunk_quiz_chain,
+    get_chunk_flashcard_chain,
+    get_study_guide_chain,
 )
 from src.document_processor import load_pdf, chunk_documents, similarity_search
 from src.schemas import (
     DocumentSummarySchema,
     DocumentComparisonSchema,
+    QuizSchema,
+    FlashcardListSchema,
+    StudyGuideSchema,
     parse_llm_json_to_model,
 )
 
@@ -36,7 +42,7 @@ def _extract_response_text(result) -> str:
 def get_llm(max_new_tokens: int = 1024):
     """Initialize and return the API-based LLM instance (Ollama)."""
     model_name = os.getenv("LLM_MODEL_NAME", "llama3.1:8b")
-    
+
     # Using the local Ollama integration
     # Temperature and other settings preserved as closely as possible
     chat_model = ChatOllama(
@@ -57,49 +63,49 @@ def answer_question(vector_store, question: str):
     """
     # 1. Retrieve relevant chunks
     chunks = similarity_search(vector_store, question, k=3)
-    
+
     # 2. Build context string and extract metadata
     context_texts = []
     sources = []
-    
+
     for chunk in chunks:
         context_texts.append(chunk.page_content)
-        
+
         # Preserve original Document metadata
         # Prefer page_label, fallback to page + 1
-        page_num = chunk.metadata.get("page_label") 
+        page_num = chunk.metadata.get("page_label")
         if not page_num and "page" in chunk.metadata:
             # page is 0-indexed in PyPDFLoader
             page_num = str(chunk.metadata["page"] + 1)
         if not page_num:
             page_num = "Unknown"
-            
+
         source_file = chunk.metadata.get("source", "Unknown")
-        
+
         # Short text preview
         preview = chunk.page_content[:150].strip() + "..."
-        
+
         sources.append({
             "page": page_num,
             "source": source_file,
             "preview": preview
         })
-        
+
     context_str = "\n\n".join(context_texts)
-    
+
     # 3. Call the QA chain
     llm = get_llm()
     qa_chain = get_qa_chain(llm)
-    
+
     # Execute the LCEL chain
     result = qa_chain.invoke({
         "context": context_str,
         "question": question
     })
-    
+
     # Extract the generated answer
     answer = _extract_response_text(result)
-    
+
     return {
         "answer": answer.strip(),
         "sources": sources
@@ -164,6 +170,156 @@ def summarize_document(file_path: str, chunk_size: int = 1000, chunk_overlap: in
         "chunk_summaries": chunk_summaries,
         "num_chunks": len(chunks)
     }
+
+
+def generate_quiz(file_path: str, num_questions: int = 5, difficulty: str = "Medium") -> dict:
+    """
+    Generate a multiple-choice quiz grounded in the document.
+    Uses a targeted chunk-sampling approach to minimize LLM calls while preserving metadata.
+    """
+    import random
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"PDF file not found: {file_path}")
+
+    # 1. Load and chunk documents
+    documents = load_pdf(file_path)
+    if not documents:
+        raise ValueError(f"No document content could be loaded from: {file_path}")
+
+    chunks = chunk_documents(documents, chunk_size=1000, chunk_overlap=100)
+    if not chunks:
+        raise ValueError("Document produced 0 chunks after splitting.")
+
+    # 2. Initialize LLM and chain
+    llm = get_llm()
+    quiz_chain = get_chunk_quiz_chain(llm)
+
+    # 3. Generate questions by sampling random chunks
+    all_questions = []
+
+    # Shuffle chunks to get variety across the document
+    shuffled_chunks = list(chunks)
+    random.shuffle(shuffled_chunks)
+
+    for chunk in shuffled_chunks:
+        if len(all_questions) >= num_questions:
+            break
+
+        page_num = chunk.metadata.get("page_label") or str(chunk.metadata.get("page", 0) + 1)
+
+        try:
+            response = quiz_chain.invoke({
+                "chunk_text": chunk.page_content,
+                "source_page": page_num,
+                "difficulty": difficulty
+            })
+
+            response_text = _extract_response_text(response)
+            quiz_data = parse_llm_json_to_model(response_text, QuizSchema)
+            all_questions.extend(quiz_data.questions)
+        except Exception as e:
+            # If a chunk fails parsing or generation, log and continue to next chunk
+            print(f"Skipping chunk due to generation error: {e}")
+            continue
+
+    # Return exactly the requested number of questions
+    final_questions = all_questions[:num_questions]
+
+    # Convert to dict for UI
+    return {
+        "questions": [q.model_dump() for q in final_questions]
+    }
+
+
+def generate_flashcards(file_path: str, num_flashcards: int = 10) -> dict:
+    """
+    Generate academic flashcards grounded in the document.
+    Uses chunk-sampling to minimize LLM calls while preserving metadata.
+    """
+    import random
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"PDF file not found: {file_path}")
+
+    documents = load_pdf(file_path)
+    if not documents:
+        raise ValueError(f"No document content could be loaded from: {file_path}")
+
+    chunks = chunk_documents(documents, chunk_size=1000, chunk_overlap=100)
+    if not chunks:
+        raise ValueError("Document produced 0 chunks after splitting.")
+
+    llm = get_llm()
+    flashcard_chain = get_chunk_flashcard_chain(llm)
+
+    all_flashcards = []
+    shuffled_chunks = list(chunks)
+    random.shuffle(shuffled_chunks)
+
+    for chunk in shuffled_chunks:
+        if len(all_flashcards) >= num_flashcards:
+            break
+
+        page_num = chunk.metadata.get("page_label") or str(chunk.metadata.get("page", 0) + 1)
+
+        try:
+            response = flashcard_chain.invoke({
+                "chunk_text": chunk.page_content,
+                "source_page": page_num
+            })
+
+            response_text = _extract_response_text(response)
+            fc_data = parse_llm_json_to_model(response_text, FlashcardListSchema)
+            all_flashcards.extend(fc_data.flashcards)
+        except Exception as e:
+            print(f"Skipping chunk due to generation error: {e}")
+            continue
+
+    final_flashcards = all_flashcards[:num_flashcards]
+
+    return {
+        "flashcards": [f.model_dump() for f in final_flashcards]
+    }
+
+
+def generate_study_guide(file_path: str) -> dict:
+    """
+    Generate a structured academic study guide from the document.
+    Concatenates chunk texts with page metadata to preserve traceability,
+    up to a safe token limit for the LLM.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"PDF file not found: {file_path}")
+
+    documents = load_pdf(file_path)
+    if not documents:
+        raise ValueError(f"No document content could be loaded from: {file_path}")
+
+    chunks = chunk_documents(documents, chunk_size=1000, chunk_overlap=100)
+    if not chunks:
+        raise ValueError("Document produced 0 chunks after splitting.")
+
+    llm = get_llm()
+    study_guide_chain = get_study_guide_chain(llm)
+
+    # Build context string with page annotations
+    # We limit to roughly the first 15 chunks (approx 15k chars) to avoid blowing the context window
+    MAX_CHUNKS_FOR_GUIDE = 15
+    context_parts = []
+
+    for idx, chunk in enumerate(chunks[:MAX_CHUNKS_FOR_GUIDE]):
+        page_num = chunk.metadata.get("page_label") or str(chunk.metadata.get("page", 0) + 1)
+        context_parts.append(f"--- Page {page_num} ---\n{chunk.page_content}")
+
+    context_str = "\n\n".join(context_parts)
+
+    response = study_guide_chain.invoke({"context": context_str})
+    response_text = _extract_response_text(response)
+
+    guide_data = parse_llm_json_to_model(response_text, StudyGuideSchema)
+
+    return guide_data.model_dump()
 
 
 # --- Document Comparison (Phase 6) ---
@@ -295,44 +451,44 @@ def test_phase4_rag():
     from src.document_processor import create_vector_store
     from dotenv import load_dotenv
     load_dotenv()
-    
+
     pdf_path = "data/sample_docs/sample.pdf"
     if not os.path.exists(pdf_path):
         print(f"Error: {pdf_path} not found.")
         return
-        
+
     print("=" * 65)
     print("  AI Academic Document Assistant — Phase 4 (RAG QA)")
     print("=" * 65)
-    
+
     print(f"Loading and processing {pdf_path}...")
     docs = load_pdf(pdf_path)
     chunks = chunk_documents(docs)
     vector_store = create_vector_store(chunks)
-    
+
     question = "What is Retrieval-Augmented Generation (RAG)?"
     print(f"\nQuestion: {question}")
     print("\nRetrieving context and generating answer...")
-    
+
     try:
         response = answer_question(vector_store, question)
-        
+
         print("\n" + "-" * 65)
         print("  Answer:")
         print("-" * 65)
         print(response["answer"])
-        
+
         print("\n" + "-" * 65)
         print("  Sources Used:")
         print("-" * 65)
         for idx, src in enumerate(response["sources"], 1):
             print(f"\n[Source {idx}] Page: {src['page']} | Source File: {src['source']}")
             print(f"Preview: {src['preview']}")
-            
+
         print("\n" + "=" * 65)
         print("Phase 4 test completed successfully!")
         print("=" * 65)
-        
+
     except Exception as e:
         print(f"\n[Error] {e}")
         if "Connection" in str(e) or "connect" in str(e).lower():
@@ -562,4 +718,3 @@ if __name__ == "__main__":
     test_phase6_comparison()
     print("\n")
     test_phase7_structured_output()
-
